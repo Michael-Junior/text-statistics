@@ -17,6 +17,7 @@ case class Statistics(inputFile: String,
                       numberSpaces: String,
                       lineGreeting: String,
                       wordsGreeting: String,
+                      charStatistics: String,
                       wordsRepetition: String)
 
 class StatisticsText {
@@ -38,32 +39,11 @@ class StatisticsText {
     val wordsLengthList: Seq[Int] = dirFile.split("\\s+").map(f => f.length).toSeq
     val wordsGreeting: String = getStatisticsLines(wordsLengthList, "palavra")
 
-    val wordsRepeated: String = getWordsRepetition(dirFile.split("\\s+"))
+    val charStatistics: String = charCodeRepetition(dirFile.split(" ").flatten)
+    val wordsRepeated: String = wordsRepetition(dirFile.split("\\s+"))
 
     Statistics(path_in.toString, dateCreation, dateModification, numberLines, numberWords, numberSpaces, linesGreeting,
-      wordsGreeting, wordsRepeated)
-  }
-
-  def getWordsRepetition(str: Seq[String]): String ={
-
-    val strList: Map[String, Int] = str.groupBy(identity).map(f => (f._1, f._2.length))
-    val contatWordsQtd: (String, (String, Int)) => String = (a, b) => a + s"[${b._1}]:${b._2}\n"
-    strList.foldLeft("")(contatWordsQtd)
-  }
-
-  def getStatisticsLines(linesLengthList: Seq[Int], title: String): String = {
-
-    val listLines: MapView[Int, Int] = linesLengthList.groupBy(identity).mapValues(f = _.size)
-
-    val concatLength: (String, (Int, Int)) => String = (a, b) => a + s"comprimento de ${title} [${b._1}]: ${b._2}\n"
-    val linesConcatLength: String = listLines.foldLeft("")(concatLength)
-
-    val concatLengthAverage: (Int, (Int, Int)) => Int = (a, b) => a + b._1 / listLines.size
-    val linesConcatLengthAverage: Int = listLines.foldLeft(0)(concatLengthAverage)
-
-    val statisticsLines: String = linesConcatLength.concat(s"comprimento médio das ${title}s: $linesConcatLengthAverage")
-
-    statisticsLines
+      wordsGreeting, charStatistics, wordsRepeated)
   }
 
   def defineOutput(path_in: Path, path_out: Path): Try[Unit] = {
@@ -74,6 +54,35 @@ class StatisticsText {
       if createReportFile then reportStatistics(statistics, path_out)
       else standardOutput(statistics)
     }
+  }
+
+  def charCodeRepetition(str: Seq[Char]): String = {
+
+    val strList: Map[Char,(Int, Seq[Char])] = str.groupBy(identity).map(f => (f._1, (f._1.intValue, f._2)))
+    val contatWordsQtd: (String, (Char, (Int, Seq[Char]))) => String = (a, b) => a + s"[${b._1}][${b._2._1}]: ${b._2._2.length}\n"
+    strList.foldLeft("")(contatWordsQtd)
+  }
+
+  def wordsRepetition(str: Seq[String]): String ={
+
+    val strList: Map[String, Int] = str.groupBy(identity).map(f => (f._1, f._2.length))
+    val contatWordsQtd: (String, (String, Int)) => String = (a, b) => a + s"[${b._1}]:${b._2}\n"
+    strList.foldLeft("")(contatWordsQtd)
+  }
+
+  def getStatisticsLines(linesLengthList: Seq[Int], title: String): String = {
+
+    val listLines: Map[Int, Int] = linesLengthList.groupBy(identity).map(f => (f._1, f._2.length))
+
+    val concatLength: (String, (Int, Int)) => String = (a, b) => a + s"comprimento de $title [${b._1}]: ${b._2}\n"
+    val linesConcatLength: String = listLines.foldLeft("")(concatLength)
+
+    val concatLengthAverage: (Int, (Int, Int)) => Int = (a, b) => a + b._1 / listLines.size
+    val linesConcatLengthAverage: Int = listLines.foldLeft(0)(concatLengthAverage)
+
+    val statisticsLines: String = linesConcatLength.concat(s"comprimento médio das ${title}s: $linesConcatLengthAverage\n")
+
+    statisticsLines
   }
 
   def reportStatistics(statistics: Statistics, path_out: Path): Try[Unit] = {
@@ -92,11 +101,10 @@ class StatisticsText {
       bufferedWriter.write(s"NÚMERO DE LINHAS: ${statistics.numberLines}\n")
       bufferedWriter.write(s"NÚMERO DE PALAVRAS: ${statistics.numberWords}\n")
       bufferedWriter.write(s"NÚMERO DE ESPAÇOS: ${statistics.numberSpaces}\n\n")
-      bufferedWriter.write(statistics.lineGreeting)
-      bufferedWriter.write(s"\n\n")
-      bufferedWriter.write(statistics.wordsGreeting)
-      bufferedWriter.write(s"\n\n")
-      bufferedWriter.write(statistics.wordsRepetition)
+      bufferedWriter.write(s"${statistics.lineGreeting}\n")
+      bufferedWriter.write(s"${statistics.wordsGreeting}\n")
+      bufferedWriter.write(s"${statistics.charStatistics}\n")
+      bufferedWriter.write(s"${statistics.wordsRepetition}\n")
 
       bufferedWriter.close()
       fileWriter.close()
@@ -113,7 +121,8 @@ class StatisticsText {
     println(s"NÚMERO DE ESPAÇOS: ${statistics.numberSpaces}\n")
     println(statistics.lineGreeting)
     println(s"\n${statistics.wordsGreeting}")
-    println(s"\n${statistics.wordsRepetition}")
+    println(s"\n${statistics.charStatistics}")
+    println(s"${statistics.wordsRepetition}")
     println("-----------------------------------------------")
   }
 }
